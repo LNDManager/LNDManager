@@ -8,12 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="admin.macaroon">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Blazored.Modal" Version="5.1.0" />
     <PackageReference Include="BlazorLazyLoading.Server" Version="1.3.0" />
     <PackageReference Include="Feather.Blazor" Version="1.0.0" />
