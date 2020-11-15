@@ -25,9 +25,9 @@ jobs:
     - name: Test
       run: dotnet test --no-restore --verbosity normal
     - name: Publish
-      run: dotnet publish
-    - name: Upload WebApp1 Build Artifact
+      run: dotnet publish --runtime linux-x64
+    - name: Upload LNDManager Build Artifact
       uses: actions/upload-artifact@v2.2.1
       with:
-        name: LNDManager
-        path: /home/runner/work/LNDManager/LNDManager/LNDManager/bin/Debug/net5.0/publish/
+        name: LNDManager.linux-x64.zip
+        path: /home/runner/work/LNDManager/LNDManager/LNDManager/bin/Release/net5.0/publish/
