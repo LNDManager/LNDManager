@@ -6,3 +6,6 @@ Using:
 - Blazor
 - GRPC
 - Bootstrap
+
+## Stage
+Proof of Concept
