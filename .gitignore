@@ -221,3 +221,4 @@ machine-learning/tutorials/**/MovieRecommenderModel.zip
 
 **/*.macaroon
 **/appsettings.Development.json
+/LNDManager/.config/dotnet-tools.json
