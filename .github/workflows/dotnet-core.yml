@@ -10,7 +10,8 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
     steps:
     - uses: actions/checkout@v2
     - name: Setup .NET Core
@@ -25,3 +26,8 @@ jobs:
       run: dotnet test --no-restore --verbosity normal
     - name: Publish
       run: dotnet publish
+    - name: Upload WebApp1 Build Artifact
+      uses: actions/upload-artifact@v2.2.1
+      with:
+        name: LNDManager
+        path: /home/runner/work/LNDManager/LNDManager/LNDManager/bin/Debug/net5.0/publish/
