@@ -1,0 +1,26 @@
+﻿@inherits LayoutComponentBase
+
+<nav class="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
+    <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">LND Manager @Version</a>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <NavMenu />
+        <main role="main" class="col-md-10 ml-md-auto col-lg-10 px-4 mt-4">
+            @Body
+        </main>
+    </div>
+</div>
+
+@code {
+    protected string Version { get; set; }
+    protected override void OnInitialized()
+    {
+        System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
+        System.Diagnostics.FileVersionInfo fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
+        Version = fvi.FileVersion;
+
+        base.OnInitialized();
+    }
+}

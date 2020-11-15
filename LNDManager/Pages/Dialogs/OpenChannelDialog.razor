@@ -1,0 +1,103 @@
+﻿@inject Lnrpc.Lightning.LightningClient lightningClient
+@inject IIndicatorService IndicatorService
+
+<div class="vw-50">
+    <Indicator IndicatorContext="open-channel-dialog">
+        <EditForm Model="@openChannelVM" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <div class="text-danger">
+                <ValidationSummary />
+            </div>
+            <div class="form-group">
+                <label for="pubkey">Pubkey</label>
+                <InputText id="pubkey" class="form-control" @bind-Value="openChannelVM.PubKey" />
+            </div>
+            <div class="form-group">
+                <label for="funding">Funding Amount</label>
+                <InputNumber id="funding" class="form-control" @bind-Value="openChannelVM.FundingAmount" min="1" max="@WalletBalanceResponse?.ConfirmedBalance" />
+                <small id="funding" class="form-text text-muted">Balance available: @WalletBalanceResponse?.ConfirmedBalance</small>
+            </div>
+            <TabControl>
+                <TabPage Text="Priority">
+                    <div class="alert alert-primary" role="alert">
+                        Fee will be calculated based on mempool load.
+                    </div>
+                </TabPage>
+                <TabPage Text="Target Number of Blocks">
+                    <div class="form-group">
+                        <InputNumber id="target-conf" class="form-control" @bind-Value="openChannelVM.TargetConf" min="1" />
+                        <small id="target-conf" class="form-text text-muted">
+                            The target number of blocks that the funding transaction should be confirmed by.
+                        </small>
+                    </div>
+                </TabPage>
+                <TabPage Text="Fee">
+                    <div class="form-group">
+                        <InputNumber id="fee" class="form-control" @bind-Value="openChannelVM.Fee" min="1" />
+                        <small id="target-conf" class="form-text text-muted">
+                            A manual fee rate set in sat/byte that should be used when crafting the funding transaction.
+                        </small>
+                    </div>
+                </TabPage>
+            </TabControl>
+            @if (!String.IsNullOrEmpty(OpenChannelErrorMessage))
+            {
+                <div class="alert alert-danger mt-3" role="alert">
+                    @OpenChannelErrorMessage
+                </div>
+            }
+            <button type="submit" class="btn btn-primary">Open Channel</button>
+        </EditForm>
+    </Indicator>
+</div>
+
+@code {
+    private OpenChannelVM openChannelVM = new OpenChannelVM
+    {
+        TargetConf = 0,
+        Fee = 0
+    };
+
+    private WalletBalanceResponse WalletBalanceResponse { get; set; }
+    private string OpenChannelErrorMessage { get; set; }
+
+    [CascadingParameter] BlazoredModalInstance BlazoredModal { get; set; }
+    [Parameter] public string Alias { get; set; }
+    [Parameter] public string PubKey { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        WalletBalanceResponse = await lightningClient.WalletBalanceAsync(new WalletBalanceRequest());
+        await base.OnInitializedAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        openChannelVM.PubKey = PubKey;
+
+        await base.OnParametersSetAsync();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        await IndicatorService.StartTaskAsync(async (task) =>
+        {
+            try
+            {
+                await lightningClient.OpenChannelSyncAsync(new OpenChannelRequest
+                {
+                    LocalFundingAmount = openChannelVM.FundingAmount,
+                    Private = false,
+                    NodePubkey = ByteString.CopyFrom(openChannelVM.PubKey.StringToByteArray()),
+                    TargetConf = openChannelVM.TargetConf,
+                    SatPerByte = openChannelVM.Fee
+                });
+                await BlazoredModal.Close();
+            }
+            catch (Grpc.Core.RpcException exception)
+            {
+                OpenChannelErrorMessage = exception.Message;
+            }
+        }, "open-channel-dialog", "Openning channel");
+    }
+}

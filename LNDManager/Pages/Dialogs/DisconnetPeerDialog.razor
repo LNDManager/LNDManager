@@ -1,0 +1,30 @@
+﻿@inject Lnrpc.Lightning.LightningClient lightningClient
+
+<div class="vw-50">
+    <span>
+        Do you really want to disconnect peer?
+    </span>
+    <pre>
+        <code>
+            @Pubkey 
+        </code>
+    </pre>
+    <button type="submit" class="btn btn-danger" @onclick="@HandleDisconnectButtonClicked">Disconnect</button>
+    <button type="submit" class="btn btn-secondary" @onclick="@HandleCancelButtonClicked">Cancel</button>
+</div>
+
+@code {
+    [CascadingParameter] BlazoredModalInstance BlazoredModal { get; set; }
+    [Parameter] public string Pubkey { get; set; }
+
+    private async Task HandleDisconnectButtonClicked()
+    {
+        await lightningClient.DisconnectPeerAsync(new DisconnectPeerRequest { PubKey = Pubkey });
+        await BlazoredModal.Close();
+    }
+
+    private async Task HandleCancelButtonClicked()
+    {
+        await BlazoredModal.Cancel();
+    }
+}

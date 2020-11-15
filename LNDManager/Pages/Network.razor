@@ -1,0 +1,60 @@
+﻿@page "/network"
+@inject Lnrpc.Lightning.LightningClient lightningClient
+@inject IIndicatorService IndicatorService
+<Indicator IndicatorContext="network-info">
+    @if (NetworkInfo != null)
+    {
+        <h2 class="card-title">Network</h2>
+        <dl>
+            <dt>Average Channel Size</dt>
+            <dd>@NetworkInfo.AvgChannelSize</dd>
+            <dt>Average Out Degree</dt>
+            <dd>@NetworkInfo.AvgOutDegree</dd>
+            <dt>Graph Diameter</dt>
+            <dd>@NetworkInfo.GraphDiameter</dd>
+            <dt>Max Channel Size</dt>
+            <dd>@NetworkInfo.MaxChannelSize</dd>
+            <dt>Max Out Degree</dt>
+            <dd>@NetworkInfo.MaxOutDegree</dd>
+            <dt>Median Channel Size Sat</dt>
+            <dd>@NetworkInfo.MedianChannelSizeSat</dd>
+            <dt>Min Channel Size</dt>
+            <dd>@NetworkInfo.MinChannelSize</dd>
+            <dt>Number of Channels</dt>
+            <dd>@NetworkInfo.NumChannels</dd>
+            <dt>Number of Nodes</dt>
+            <dd>@NetworkInfo.NumNodes</dd>
+            <dt>Number of Zombie Channels</dt>
+            <dd>@NetworkInfo.NumZombieChans</dd>
+            <dt>Total Network Capacity</dt>
+            <dd>@NetworkInfo.TotalNetworkCapacity</dd>
+        </dl>
+    }
+    @if (!String.IsNullOrEmpty(NetworkInfoErrorMessage))
+    {
+        <div class="alert alert-danger mt-3" role="alert">
+            @NetworkInfoErrorMessage
+        </div>
+    }
+</Indicator>
+
+@code {
+    private NetworkInfo NetworkInfo { get; set; }
+    public string NetworkInfoErrorMessage { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await IndicatorService.StartTaskAsync(async (task) =>
+        {
+            try
+            {
+                NetworkInfo = await lightningClient.GetNetworkInfoAsync(new NetworkInfoRequest());
+            }
+            catch (Grpc.Core.RpcException exception)
+            {
+                NetworkInfoErrorMessage = exception.Message;
+            }
+        }, "network-info");
+        await base.OnInitializedAsync();
+    }
+}

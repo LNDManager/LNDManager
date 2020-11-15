@@ -1,0 +1,109 @@
+﻿@page "/peers"
+@inject Lnrpc.Lightning.LightningClient lightningClient
+@inject IModalService Modal
+@inject IIndicatorService IndicatorService
+
+<Indicator IndicatorContext="peers">
+    @if (ListPeersResponse != null && PeerNodeDictionary != null)
+    {
+        <h2 class="card-title">Peers <span class="badge badge-primary">@ListPeersResponse.Peers.Count</span></h2>
+        <table class="table table-sm table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>Alias</th>
+                    <th>PubKey</th>
+                    <th>Addresses</th>
+                    <th>Received [sats]</th>
+                    <th>Sent [sats]</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var peer in ListPeersResponse.Peers)
+                {
+                    <tr>
+                        <td>@PeerNodeDictionary[peer.PubKey].Node.Alias</td>
+                        <td>@peer.PubKey</td>
+                        <td>
+                            @((MarkupString)String.Join("<br />", PeerNodeDictionary[peer.PubKey].Node.Addresses.Select(address => address.Addr)))
+                        </td>
+                        <td>@peer.SatRecv</td>
+                        <td>@peer.SatSent</td>
+                        <td>
+                            <span role="button" title="Open Channel" @onclick="@(() => HandleOpenChannelButtonClick(peer))" tabindex="0" style="cursor: pointer">
+                                <Feather.Blazor.Icons.FeatherCloudLightning Color="#007bff" />
+                            </span>
+                            <span role="button" title="Disconnect" @onclick="@(() => HandleDisconnectButtonClick(peer))" tabindex="0" style="cursor: pointer">
+                                <Feather.Blazor.Icons.FeatherXCircle Color="#dc3545" />
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <div>
+            <button @onclick="@HandleConnectToPeerButtonClick" class="btn btn-primary">Connect to Peer</button>
+        </div>
+    }
+</Indicator>
+
+@code {
+    protected ListPeersResponse ListPeersResponse { get; set; }
+    protected Dictionary<string, NodeInfo> PeerNodeDictionary { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPeers();
+        await base.OnInitializedAsync();
+    }
+
+    protected async Task HandleConnectToPeerButtonClick()
+    {
+        var modalReference = Modal.Show<Dialogs.ConnectToPeerDialog>("Connect to Peer");
+        var result = await modalReference.Result;
+
+        if (!result.Cancelled)
+        {
+            await LoadPeers();
+        }
+    }
+
+    protected async Task HandleDisconnectButtonClick(Peer peer)
+    {
+        var modalParameters = new ModalParameters();
+        modalParameters.Add(nameof(Peer.PubKey), peer.PubKey);
+        var modalReference = Modal.Show<Dialogs.DisconnetPeerDialog>("Disconnect Peer", modalParameters);
+        var result = await modalReference.Result;
+
+        if (!result.Cancelled)
+        {
+            await LoadPeers();
+        }
+    }
+
+    protected async Task HandleOpenChannelButtonClick(Peer peer)
+    {
+        var modalParameters = new ModalParameters();
+        modalParameters.Add(nameof(Peer.PubKey), peer.PubKey);
+        var modalReference = Modal.Show<Dialogs.OpenChannelDialog>($"Open Channel with {PeerNodeDictionary[peer.PubKey].Node.Alias}", modalParameters);
+        var result = await modalReference.Result;
+
+        if (!result.Cancelled)
+        {
+            await LoadPeers();
+        }
+    }
+
+    private async Task LoadPeers()
+    {
+        await IndicatorService.StartTaskAsync(async (task) =>
+        {
+            ListPeersResponse = await lightningClient.ListPeersAsync(new ListPeersRequest());
+            var nodesInfo = ListPeersResponse.Peers.Select(async peer => await lightningClient.GetNodeInfoAsync(new NodeInfoRequest { PubKey = peer.PubKey, IncludeChannels = true }));
+            var nodes = await Task.WhenAll(nodesInfo);
+
+            PeerNodeDictionary = nodes.ToDictionary(node => node.Node.PubKey, node => node);
+
+            ListPeersResponse.Peers.OrderBy(peer => PeerNodeDictionary[peer.PubKey].Node.Alias);
+        }, "peers");
+    }
+}

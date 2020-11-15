@@ -1,0 +1,57 @@
+﻿@inject Lnrpc.Lightning.LightningClient lightningClient
+@inject IIndicatorService IndicatorService
+
+<div class="vw-50">
+    <Indicator IndicatorContext="@nameof(Dialogs.ConnectToPeerDialog)">
+        <EditForm Model="@connectToPeerVM" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <div class="text-danger">
+                <ValidationSummary />
+            </div>
+            <div class="form-group">
+                <label for="connection">Connection</label>
+                <InputText id="connection" class="form-control" @bind-Value="connectToPeerVM.Connection" />
+                <small id="connection" class="form-text text-muted">Pubkey or Pubkey@@IP:PORT</small>
+            </div>
+
+            @if (!String.IsNullOrEmpty(ConnectToPeerErrorMessage))
+            {
+                <div class="alert alert-danger mt-3" role="alert">
+                    @ConnectToPeerErrorMessage
+                </div>
+            }
+
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </EditForm>
+    </Indicator>
+</div>
+
+@code {
+    private ConnectToPeerVM connectToPeerVM = new ConnectToPeerVM();
+
+    [CascadingParameter] BlazoredModalInstance BlazoredModal { get; set; }
+
+    public string ConnectToPeerErrorMessage { get; set; }
+
+    private async Task HandleValidSubmit()
+    {
+        await IndicatorService.StartTaskAsync(async (task) =>
+        {
+            try
+            {
+                var connection = connectToPeerVM.Connection.Split('@');
+                var lightningAddress = new LightningAddress { Pubkey = connection[0] };
+                if (connection.Length == 2)
+                {
+                    lightningAddress.Host = connection[1];
+                }
+                await lightningClient.ConnectPeerAsync(new ConnectPeerRequest { Addr = lightningAddress });
+                await BlazoredModal.Close();
+            }
+            catch (Grpc.Core.RpcException exception)
+            {
+                ConnectToPeerErrorMessage = exception.Message;
+            }
+        }, nameof(Dialogs.ConnectToPeerDialog), "Connecting to Peer");
+    }
+}

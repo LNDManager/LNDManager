@@ -1,0 +1,142 @@
+﻿@page "/open-channels"
+@inject Lnrpc.Lightning.LightningClient lightningClient
+@inject IIndicatorService IndicatorService
+@inject IModalService Modal
+@inject NavigationManager NavigationManager
+
+<Indicator IndicatorContext="channels">
+    @if (ListChannelsResponse != null)
+    {
+        <h2 class="card-title">Open Channels <span class="badge badge-primary">@ListChannelsResponse.Channels.Count</span></h2>
+        <h4 class="card-title">Inbound <span class="badge badge-primary">@ListChannelsResponse.Channels.Count(channel => !channel.Initiator)</span></h4>
+        <table class="table table-sm table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th style="width: 5em">Is active?</th>
+                    <th>Can receive [sats]</th>
+                    <th class="w-25">&nbsp;</th>
+                    <th>Can send [sats]</th>
+                    <th>Peer / Alias</th>
+                    <th>Capacity [sats]</th>
+                    <th>Uptime</th>
+                    <th style="width: 1em">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var channel in ListChannelsResponse.Channels.Where(channel => !channel.Initiator))
+                {
+                    <tr>
+                        <td class="@(channel.Active ? "text-success" : "text-danger") text-center" style="cursor: default" title="@(channel.Active ? "Yes" : "No")">&#11044;</td>
+                        <td class="text-right">@String.Format("{0:N0}", channel.RemoteBalance)</td>
+                        <td class="align-middle w-25">
+                            <div class="progress d-flex align-items-center bg-transparent rounded-0" style="height: 10px">
+                                <div class="progress-bar" role="progressbar" style="width: @ChannelPercentageBalances[channel.ChanId]%; height: 2px" aria-valuenow="@ChannelPercentageBalances[channel.ChanId]" aria-valuemin="0" aria-valuemax="101"></div>
+                                <div class="progress-bar bg-dark" role="progressbar" style="width: 2px; height: 10px" aria-valuenow="1" aria-valuemin="0" aria-valuemax="101"></div>
+                                <div class="progress-bar" role="progressbar" style="width: @(100 - ChannelPercentageBalances[channel.ChanId])%; height: 2px" aria-valuenow="@(100 - ChannelPercentageBalances[channel.ChanId])]" aria-valuemin="0" aria-valuemax="101"></div>
+                            </div>
+                        </td>
+                        <td class="text-right">@String.Format("{0:N0}", channel.LocalBalance)</td>
+                        <td>@NodesInfoList.Find(item => item.Node.PubKey == channel.RemotePubkey).Node.Alias</td>
+                        <td>@channel.Capacity</td>
+                        <td>@(TimeSpan.FromSeconds(channel.Uptime).Humanize(5))</td>
+                        <td>
+                            @*<span @onclick="@HandleCloseChannelButtonClick" class="badge badge-danger">
+                                <Feather.Blazor.Icons.FeatherCloudOff />
+                                Close Channel
+                            </span>*@
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <h4 class="card-title">Outbound <span class="badge badge-primary">@ListChannelsResponse.Channels.Count(channel => channel.Initiator)</span></h4>
+        <table class="table table-sm table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th style="width: 5em">Is active?</th>
+                    <th>Can receive</th>
+                    <th>&nbsp;</th>
+                    <th>Can send</th>
+                    <th>Peer / Alias</th>
+                    <th>Capacity</th>
+                    <th>Uptime</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var channel in ListChannelsResponse.Channels.Where(channel => channel.Initiator))
+                {
+                    <tr>
+                        <td class="@(channel.Active ? "text-success" : "text-danger") text-center" style="cursor: default" title="@(channel.Active ? "Yes" : "No")">&#11044;</td>
+                        <td class="text-right">@String.Format("{0:N0}", channel.RemoteBalance)</td>
+                        <td class="align-middle w-25">
+                            <div class="progress d-flex align-items-center bg-transparent rounded-0" style="height: 10px">
+                                <div class="progress-bar" role="progressbar" style="width: @ChannelPercentageBalances[channel.ChanId]%; height: 2px" aria-valuenow="@ChannelPercentageBalances[channel.ChanId]" aria-valuemin="0" aria-valuemax="101"></div>
+                                <div class="progress-bar bg-dark" role="progressbar" style="width: 2px; height: 10px" aria-valuenow="1" aria-valuemin="0" aria-valuemax="101"></div>
+                                <div class="progress-bar" role="progressbar" style="width: @(100 - ChannelPercentageBalances[channel.ChanId])%; height: 2px" aria-valuenow="@(100 - ChannelPercentageBalances[channel.ChanId])]" aria-valuemin="0" aria-valuemax="101"></div>
+                            </div>
+                        </td>
+                        <td class="text-right">@String.Format("{0:N0}", channel.LocalBalance)</td>
+                        <td>@NodesInfoList.Find(item => item.Node.PubKey == channel.RemotePubkey).Node.Alias</td>
+                        <td>@channel.Capacity</td>
+                        <td>@(TimeSpan.FromSeconds(channel.Uptime).Humanize(5))</td>
+                        <td>
+                            @*<span @onclick="@HandleCloseChannelButtonClick" class="badge badge-danger">
+                                <Feather.Blazor.Icons.FeatherCloudOff />
+                                Close Channel
+                            </span>*@
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <button @onclick="@HandleOpenChannelButtonClick" class="btn btn-primary">
+            <Feather.Blazor.Icons.FeatherCloudLightning />
+            Open Channel
+        </button>
+    }
+</Indicator>
+
+
+@code {
+    protected ListChannelsResponse ListChannelsResponse { get; set; }
+    protected List<NodeInfo> NodesInfoList { get; set; }
+    protected Dictionary<ulong, decimal> ChannelPercentageBalances { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadChannels();
+
+        await base.OnInitializedAsync();
+    }
+
+    private async Task LoadChannels()
+    {
+        await IndicatorService.StartTaskAsync(async (task) =>
+        {
+            ListChannelsResponse = await lightningClient.ListChannelsAsync(new ListChannelsRequest());
+
+            var nodesInfo = ListChannelsResponse.Channels.Select(async channel => await lightningClient.GetNodeInfoAsync(new NodeInfoRequest { PubKey = channel.RemotePubkey, IncludeChannels = false }));
+            var nodes = await Task.WhenAll(nodesInfo);
+            NodesInfoList = nodes.ToList();
+
+            ChannelPercentageBalances = ListChannelsResponse.Channels.ToDictionary(item => item.ChanId, item => Math.Max(0M, Math.Min(100M, (item.RemoteBalance / Math.Max(1, item.LocalBalance)))));
+        }, "channels");
+    }
+
+    private async Task HandleOpenChannelButtonClick()
+    {
+        var modalReference = Modal.Show<Dialogs.OpenChannelDialog>($"Open Channel");
+        var result = await modalReference.Result;
+
+        if (!result.Cancelled)
+        {
+            NavigationManager.NavigateTo("pending-channels");
+        }
+    }
+
+    private async Task HandleCloseChannelButtonClick()
+    {
+        // TODO
+    }
+}

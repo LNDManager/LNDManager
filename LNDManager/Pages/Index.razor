@@ -1,0 +1,75 @@
+﻿@page "/"
+@inject Lnrpc.Lightning.LightningClient lightningClient
+@inject IIndicatorService IndicatorService
+<Indicator IndicatorContext="index">
+    @if (InfoResponse != null)
+    {
+        <h2>Node info</h2>
+        <dl>
+            <dt>Alias</dt>
+            <dd>@InfoResponse.Alias</dd>
+            <dt>LND Version</dt>
+            <dd>@InfoResponse.Version</dd>
+            <dt>Public key</dt>
+            <dd>@InfoResponse.IdentityPubkey</dd>
+            <dt>Is synced to chain?</dt>
+            <dd class="@(InfoResponse.SyncedToChain ? "text-success" : "text-danger")">@(InfoResponse.SyncedToChain ? "Yes" : "No") (block height: @InfoResponse.BlockHeight)</dd>
+            <dt>Is synced to graph?</dt>
+            <dd class="@(InfoResponse.SyncedToGraph? "text-success" : "text-danger")">@(InfoResponse.SyncedToChain ? "Yes" : "No")</dd>
+            <dt>URIs</dt>
+            <dd>@((MarkupString)String.Join("<br />", InfoResponse.Uris))</dd>
+            <dt>Chains</dt>
+            <dd>@((MarkupString)String.Join("<br />", InfoResponse.Chains.Select(chain => $"{chain.Chain_} {chain.Network}")))</dd>
+            <dt>Features</dt>
+            <dd>
+                <table class="table table-sm table-bordered table-striped w-50">
+                    <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Is known?</th>
+                            <th scope="col">Is required?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in InfoResponse.Features.OrderBy(item => item.Value.Name))
+                        {
+                            <tr>
+                                <td>@item.Value.Name</td>
+                                <td class="@(item.Value.IsKnown ? "text-success" : "text-danger")">@(item.Value.IsKnown ? "Yes" : "No")</td>
+                                <td class="@(item.Value.IsRequired ? "text-success" : "text-danger")">@(item.Value.IsRequired ? "Yes" : "No")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </dd>
+        </dl>
+    }
+    @if (!String.IsNullOrEmpty(InfoResponseErrorMessage))
+    {
+        <div class="alert alert-danger mt-3" role="alert">
+            @InfoResponseErrorMessage
+        </div>
+    }
+</Indicator>
+
+@code {
+    private GetInfoResponse InfoResponse { get; set; }
+    private string InfoResponseErrorMessage { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await IndicatorService.StartTaskAsync(async (task) =>
+        {
+            try
+            {
+                InfoResponse = await lightningClient.GetInfoAsync(new GetInfoRequest());
+            }
+            catch (Grpc.Core.RpcException exception)
+            {
+                InfoResponseErrorMessage = exception.Message;
+            }
+        }, "index");
+
+        await base.OnInitializedAsync();
+    }
+}
