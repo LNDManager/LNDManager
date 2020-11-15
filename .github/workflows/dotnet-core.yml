@@ -30,4 +30,4 @@ jobs:
       uses: actions/upload-artifact@v2.2.1
       with:
         name: LNDManager.linux-x64.zip
-        path: /home/runner/work/LNDManager/LNDManager/LNDManager/bin/Release/net5.0/publish/
+        path: /home/runner/work/LNDManager/LNDManager/LNDManager/bin/Debug/net5.0/publish/
