@@ -4,7 +4,6 @@
     <TargetFramework>net5.0</TargetFramework>
     <AssemblyVersion>1.0.0</AssemblyVersion>
     <FileVersion>1.0.0</FileVersion>
-    <UserSecretsId>9ff098e2-fd28-4ffe-825c-090e5d5c3958</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="protos\rpc.proto" GrpcServices="Client" />
+    <Protobuf Include="Protos\rpc.proto" GrpcServices="Client" />
   </ItemGroup>
 
 </Project>
