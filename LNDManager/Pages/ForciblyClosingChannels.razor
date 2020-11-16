@@ -1,13 +1,13 @@
-﻿@page "/pending-channels"
+﻿@page "/forcibly-closing-channels"
 @inject Lnrpc.Lightning.LightningClient lightningClient
 @inject IIndicatorService IndicatorService
 
-<Indicator IndicatorContext="pending-channels">
+<Indicator IndicatorContext="@nameof(Pages.ForciblyClosingChannels)">
     @if (PendingChannelsResponse != null)
     {
-        @if (PendingChannelsResponse.PendingOpenChannels.Count == 0)
+        @if (PendingChannelsResponse.PendingForceClosingChannels.Count == 0)
         {
-            <div>No pending open channels.</div>
+            <div>No forcibly closing channels.</div>
         }
         else
         {
@@ -20,23 +20,23 @@
                         <th title="The minimum satoshis this node is required to reserve in its balance.">Local Reserve Balance [sats]</th>
                         <th>Remote Balance [sats]</th>
                         <th>Remote Reserve Balance [sats]</th>
-                        <th>Comit Fee [sats]</th>
+                        <th>Limbo Balance [sats]</th>
                         <th>Capacity [sats]</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var channel in PendingChannelsResponse.PendingOpenChannels)
+                    @foreach (var channel in PendingChannelsResponse.PendingForceClosingChannels)
                     {
                         <tr>
                             <td>
-                                @PeerNodeDictionary_PendingOpen[channel.Channel.ChannelPoint].Node.Alias
+                                @PeerNodeDictionary_ForceClosing[channel.Channel.ChannelPoint].Node.Alias
                             </td>
                             <td>@channel.Channel.ChannelPoint</td>
                             <td>@channel.Channel.LocalBalance</td>
                             <td>@channel.Channel.LocalChanReserveSat</td>
                             <td>@channel.Channel.RemoteBalance</td>
                             <td>@channel.Channel.RemoteChanReserveSat</td>
-                            <td>@channel.CommitFee</td>
+                            <td>@channel.LimboBalance</td>
                             <td>@channel.Channel.Capacity</td>
                         </tr>
                     }
@@ -49,9 +49,7 @@
 
 @code {
     private PendingChannelsResponse PendingChannelsResponse { get; set; }
-    private Dictionary<string, NodeInfo> PeerNodeDictionary_PendingOpen { get; set; }
     private Dictionary<string, NodeInfo> PeerNodeDictionary_ForceClosing { get; set; }
-    private Dictionary<string, NodeInfo> PeerNodeDictionary_WaitingClosing { get; set; }
 
     private List<PendingChannelsResponse.Types.PendingOpenChannel> PendingOpenChannels { get; set; }
 
@@ -69,23 +67,8 @@
         await IndicatorService.StartTaskAsync(async (task) =>
         {
             PendingChannelsResponse = await lightningClient.PendingChannelsAsync(new PendingChannelsRequest());
-            await LoadChannelsPendingOpen();
             await LoadNodesInfoPendingForceClosing();
-            await LoadNodesInfoWaitingClosing();
-        }, "pending-channels");
-    }
-
-    private async Task LoadChannelsPendingOpen()
-    {
-        var nodesInfo = PendingChannelsResponse.PendingOpenChannels.Select(async channel => await lightningClient.GetNodeInfoAsync(new NodeInfoRequest { PubKey = channel.Channel.RemoteNodePub, IncludeChannels = false }));
-        var nodes = await Task.WhenAll(nodesInfo);
-
-        var nodesInfo_PendingOpen = PendingChannelsResponse.PendingOpenChannels.Select(async channel =>
-        {
-            var nodeInfo = await lightningClient.GetNodeInfoAsync(new NodeInfoRequest { PubKey = channel.Channel.RemoteNodePub, IncludeChannels = false });
-            return KeyValuePair.Create<string, NodeInfo>(channel.Channel.ChannelPoint, nodeInfo);
-        });
-        PeerNodeDictionary_PendingOpen = (await Task.WhenAll(nodesInfo_PendingOpen)).ToDictionary(item => item.Key, item => item.Value);
+        }, nameof(Pages.ForciblyClosingChannels));
     }
 
     private async Task LoadNodesInfoPendingForceClosing()
@@ -99,18 +82,5 @@
             return KeyValuePair.Create<string, NodeInfo>(channel.Channel.ChannelPoint, nodeInfo);
         });
         PeerNodeDictionary_ForceClosing = (await Task.WhenAll(nodesInfo_ForceClosing)).ToDictionary(item => item.Key, item => item.Value);
-    }
-
-    private async Task LoadNodesInfoWaitingClosing()
-    {
-        var nodesInfo = PendingChannelsResponse.WaitingCloseChannels.Select(async channel => await lightningClient.GetNodeInfoAsync(new NodeInfoRequest { PubKey = channel.Channel.RemoteNodePub, IncludeChannels = false }));
-        var nodes = await Task.WhenAll(nodesInfo);
-
-        var nodesInfo_ForceClosing = PendingChannelsResponse.WaitingCloseChannels.Select(async channel =>
-        {
-            var nodeInfo = await lightningClient.GetNodeInfoAsync(new NodeInfoRequest { PubKey = channel.Channel.RemoteNodePub, IncludeChannels = false });
-            return KeyValuePair.Create<string, NodeInfo>(channel.Channel.ChannelPoint, nodeInfo);
-        });
-        PeerNodeDictionary_WaitingClosing = (await Task.WhenAll(nodesInfo_ForceClosing)).ToDictionary(item => item.Key, item => item.Value);
     }
 }

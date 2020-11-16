@@ -1,0 +1,74 @@
+﻿@inject Lnrpc.Lightning.LightningClient lightningClient
+@inject IIndicatorService IndicatorService
+
+<div class="vw-50">
+    <Indicator IndicatorContext="@nameof(Dialogs.CloseChannelDialog)">
+        <EditForm Model="@CloseChannelVM" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <div class="text-danger">
+                <ValidationSummary />
+            </div>
+            <div class="form-group">
+                <label for="connection">Connection</label>
+                <InputText id="connection" class="form-control" @bind-Value="CloseChannelVM.ChannelPoint.FundingTxidStr" readonly />
+                <small id="connection" class="form-text text-muted">Hex-encoded string representing the byte-reversed hash of the funding transaction.</small>
+            </div>
+            <TabControl>
+                <TabPage Text="Target Number of Blocks">
+                    <div class="form-group">
+                        <InputNumber id="target-conf" class="form-control" @bind-Value="CloseChannelVM.TargetConf" min="1" />
+                        <small id="target-conf" class="form-text text-muted">
+                            The target number of blocks that the closure transaction should be confirmed by.
+                        </small>
+                    </div>
+                </TabPage>
+                <TabPage Text="Fee">
+                    <div class="form-group">
+                        <InputNumber id="fee" class="form-control" @bind-Value="CloseChannelVM.SatPerByte" min="1" />
+                        <small id="target-conf" class="form-text text-muted">
+                            A manual fee rate set in sat/byte that should be used when crafting the closure transaction.
+                        </small>
+                    </div>
+                </TabPage>
+            </TabControl>
+
+            @if (!String.IsNullOrEmpty(ClosingChannelErrorMessage))
+            {
+                <div class="alert alert-danger mt-3" role="alert">
+                    @ClosingChannelErrorMessage
+                </div>
+            }
+
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </EditForm>
+    </Indicator>
+</div>
+
+@code {
+    [CascadingParameter] BlazoredModalInstance BlazoredModal { get; set; }
+    [Parameter] public CloseChannelVM CloseChannelVM { get; set; }
+
+    public string ClosingChannelErrorMessage { get; set; }
+
+    private async Task HandleValidSubmit()
+    {
+        await IndicatorService.StartTaskAsync(async (task) =>
+        {
+            try
+            {
+                lightningClient.CloseChannel(new CloseChannelRequest
+                {
+                    ChannelPoint = CloseChannelVM.ChannelPoint,
+                    SatPerByte = CloseChannelVM.SatPerByte,
+                    TargetConf = CloseChannelVM.TargetConf
+                });
+
+                await BlazoredModal.Close();
+            }
+            catch (Grpc.Core.RpcException exception)
+            {
+                ClosingChannelErrorMessage = exception.Message;
+            }
+        }, nameof(Dialogs.CloseChannelDialog), "Closing channel");
+    }
+}

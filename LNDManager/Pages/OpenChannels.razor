@@ -81,10 +81,10 @@
                         <td>@channel.Capacity</td>
                         <td>@(TimeSpan.FromSeconds(channel.Uptime).Humanize(5))</td>
                         <td>
-                            @*<span @onclick="@HandleCloseChannelButtonClick" class="badge badge-danger">
+                            <div @onclick="@(() => HandleCloseChannelButtonClick(channel.ChannelPoint))" class="badge badge-danger">
                                 <Feather.Blazor.Icons.FeatherCloudOff />
                                 Close Channel
-                            </span>*@
+                            </div>
                         </td>
                     </tr>
                 }
@@ -135,8 +135,27 @@
         }
     }
 
-    private async Task HandleCloseChannelButtonClick()
+    private async Task HandleCloseChannelButtonClick(string channelPoint)
     {
-        // TODO
+        string[] channelPointAndOutputIndex = channelPoint.Split(':');
+
+        var modalParameters = new ModalParameters();
+
+        modalParameters.Add(nameof(CloseChannelVM), new CloseChannelVM
+        {
+            ChannelPoint = new ChannelPoint
+            {
+                FundingTxidStr = channelPointAndOutputIndex[0],
+                OutputIndex = uint.Parse(channelPointAndOutputIndex[1])
+            }
+        });
+
+        var modalReference = Modal.Show<Dialogs.CloseChannelDialog>($"Close Channel", modalParameters);
+        var result = await modalReference.Result;
+
+        if (!result.Cancelled)
+        {
+
+        }
     }
 }
