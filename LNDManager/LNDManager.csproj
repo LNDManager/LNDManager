@@ -7,9 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Protos\annotations.proto" />
+    <None Remove="Protos\http.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Blazored.Modal" Version="5.1.0" />
     <PackageReference Include="BlazorLazyLoading.Server" Version="1.3.0" />
     <PackageReference Include="Feather.Blazor" Version="1.0.0" />
+    <PackageReference Include="Google.Api.CommonProtos" Version="2.2.0" />
     <PackageReference Include="Grpc.AspNetCore" Version="2.33.1" />
     <PackageReference Include="Google.Protobuf" Version="3.14.0" />
     <PackageReference Include="Grpc" Version="2.33.1" />
@@ -23,7 +29,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Protobuf Include="Protos\http.proto" GrpcServices="Client" Link="google/api/http.proto" />
+    <Protobuf Include="Protos\annotations.proto" GrpcServices="Client" Link="google/api/annotations.proto" />
     <Protobuf Include="Protos\rpc.proto" GrpcServices="Client" />
+    <Protobuf Include="Protos\faraday-rpc.proto" GrpcServices="Client" />
   </ItemGroup>
 
 </Project>
