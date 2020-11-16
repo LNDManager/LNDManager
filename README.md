@@ -1,13 +1,24 @@
 # LNDManager
-Lightning Network Daemon Web Interface.
+LNDManager - is a web interface of the [lnd](https://https://github.com/lightningnetwork/lnd) (The Lightning Network Daemon). It is a [Lightning Network](https://lightning.network/) node management tool. In the current state LNDManager is capable of:
 
-![.NET Core](https://github.com/LNDManager/LNDManager/workflows/.NET%20Core/badge.svg?branch=main)
+- Show node info
+- Show network info
+- List peers
+- Connect to peer
+- Disconnect from peer
+- List channels
+- Open channel
 
-Using:
-- .NET 5
-- Blazor
-- GRPC
-- Bootstrap
+Future features:
+- List pending channels
+- Send payment
+- Create invoice
+- List invoices
+
+Far future features:
+- [Faraday](https://github.com/lightninglabs/faraday) management
+- [Loop](https://github.com/lightninglabs/loop) management
+- [Pool](https://github.com/lightninglabs/pool) management
 
 ## Stage
 Proof of Concept
