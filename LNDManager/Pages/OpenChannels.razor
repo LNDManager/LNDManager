@@ -41,9 +41,9 @@
                         <td>@(TimeSpan.FromSeconds(channel.Uptime).Humanize(5))</td>
                         <td>
                             @*<span @onclick="@HandleCloseChannelButtonClick" class="badge badge-danger">
-                                <Feather.Blazor.Icons.FeatherCloudOff />
-                                Close Channel
-                            </span>*@
+                                    <Feather.Blazor.Icons.FeatherCloudOff />
+                                    Close Channel
+                                </span>*@
                         </td>
                     </tr>
                 }
@@ -93,6 +93,10 @@
         <button @onclick="@HandleOpenChannelButtonClick" class="btn btn-primary">
             <Feather.Blazor.Icons.FeatherCloudLightning />
             Open Channel
+        </button>
+        <button @onclick="@(() => NavigationManager.NavigateTo("/open-channels/graph"))" class="btn btn-secondary">
+            <Feather.Blazor.Icons.FeatherCloud />
+            Graph
         </button>
     }
 </Indicator>

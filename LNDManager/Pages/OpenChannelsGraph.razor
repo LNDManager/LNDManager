@@ -1,0 +1,39 @@
+﻿@page "/open-channels/graph"
+@inject IJSRuntime js
+@inject Lnrpc.Lightning.LightningClient lightningClient
+@inject IIndicatorService IndicatorService
+
+<Indicator IndicatorContext="open-channels-graph">
+    <div id="cy"></div>
+</Indicator>
+
+@code {
+    private ListChannelsResponse ListChannelsResponse { get; set; }
+    private GetInfoResponse InfoResponse { get; set; }
+    private List<NodeInfo> NodesInfoList { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await IndicatorService.StartTaskAsync(async (task) =>
+        {
+            ListChannelsResponse = await lightningClient.ListChannelsAsync(new ListChannelsRequest());
+            InfoResponse = await lightningClient.GetInfoAsync(new GetInfoRequest());
+
+            var nodesInfo = ListChannelsResponse.Channels.Select(async channel => await lightningClient.GetNodeInfoAsync(new NodeInfoRequest { PubKey = channel.RemotePubkey, IncludeChannels = false }));
+            var nodes = await Task.WhenAll(nodesInfo);
+            NodesInfoList = nodes.ToList();
+        }, "open-channels-graph");
+
+
+        await base.OnInitializedAsync();
+    }
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (ListChannelsResponse != null && InfoResponse != null && NodesInfoList != null)
+        {
+            await js.InvokeAsync<string>("renderOpenChannelsGraph", ListChannelsResponse, InfoResponse, NodesInfoList);
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+}
