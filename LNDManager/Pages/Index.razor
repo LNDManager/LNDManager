@@ -15,7 +15,7 @@
             <dt>Is synced to chain?</dt>
             <dd class="@(InfoResponse.SyncedToChain ? "text-success" : "text-danger")">@(InfoResponse.SyncedToChain ? "Yes" : "No") (block height: @InfoResponse.BlockHeight)</dd>
             <dt>Is synced to graph?</dt>
-            <dd class="@(InfoResponse.SyncedToGraph? "text-success" : "text-danger")">@(InfoResponse.SyncedToChain ? "Yes" : "No")</dd>
+            <dd class="@(InfoResponse.SyncedToGraph? "text-success" : "text-danger")">@(InfoResponse.SyncedToGraph ? "Yes" : "No")</dd>
             <dt>URIs</dt>
             <dd>@((MarkupString)String.Join("<br />", InfoResponse.Uris))</dd>
             <dt>Chains</dt>
