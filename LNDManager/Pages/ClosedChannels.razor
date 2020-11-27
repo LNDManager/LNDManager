@@ -1,0 +1,101 @@
+﻿@page "/closed-channels"
+
+@inject Lnrpc.Lightning.LightningClient lightningClient
+@inject IIndicatorService IndicatorService
+
+<Indicator IndicatorContext="@nameof(Pages.ClosedChannels)">
+    @if (ClosedChannelsResponse != null)
+    {
+        <h2 class="card-title">Closed Channels <span class="badge badge-primary">@ClosedChannelsResponse.Channels.Count</span></h2>
+        @if (ClosedChannelsResponse.Channels.Count == 0)
+        {
+            <div>No closed channels.</div>
+        }
+        else
+        {
+            <Table>
+                <thead>
+                    <tr>
+                        <th>Alias</th>
+                        <th>Channel Point</th>
+                        <th>Seetled balance</th>
+                        <th>Time locked balance</th>
+                        <th>Capacity</th>
+                        <th>Open initiator</th>
+                        <th>Close initiator</th>
+                        <th>Close type</th>
+                        <th>Close height</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var channel in ClosedChannelsResponse.Channels)
+                    {
+                        <tr>
+                            <td>
+                                @(PeerNodeDictionary_Closed.ContainsKey(channel.ChannelPoint) ? PeerNodeDictionary_Closed[channel.ChannelPoint].Node.Alias : "Unable to find node")
+                            </td>
+                            <td>@channel.ChannelPoint</td>
+                            <td>@channel.SettledBalance</td>
+                            <td>@channel.TimeLockedBalance</td>
+                            <td>@channel.Capacity</td>
+                            <td>@channel.OpenInitiator.Humanize()</td>
+                            <td>@channel.CloseInitiator.Humanize()</td>
+                            <td>@channel.CloseType.Humanize()</td>
+                            <td>@channel.CloseHeight</td>
+                        </tr>
+                    }
+                </tbody>
+            </Table>
+            @if (ClosedChannelNodesErrorMessages.Any())
+            {
+                <div class="alert alert-danger mt-3" role="alert">
+                    <ul>
+                        @foreach (var message in ClosedChannelNodesErrorMessages)
+                        {
+                            <li>@message</li>
+                        }
+                    </ul>
+                </div>
+            }
+        }
+    }
+</Indicator>
+
+@code {
+
+    private ClosedChannelsResponse ClosedChannelsResponse { get; set; }
+    private Dictionary<string, NodeInfo> PeerNodeDictionary_Closed { get; } = new Dictionary<string, NodeInfo>();
+    public List<string> ClosedChannelNodesErrorMessages { get; } = new List<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadChannels();
+
+        await base.OnInitializedAsync();
+    }
+
+    private async Task LoadChannels()
+    {
+        await IndicatorService.StartTaskAsync(async (task) =>
+        {
+            ClosedChannelsResponse = await lightningClient.ClosedChannelsAsync(new ClosedChannelsRequest());
+            await LoadNodesInfoClosedChannels();
+        }, nameof(Pages.ClosedChannels));
+    }
+
+    private async Task LoadNodesInfoClosedChannels()
+    {
+        foreach (var channel in ClosedChannelsResponse.Channels)
+        {
+            try
+            {
+                var nodeInfo = await lightningClient.GetNodeInfoAsync(new NodeInfoRequest { PubKey = channel.RemotePubkey, IncludeChannels = false });
+                PeerNodeDictionary_Closed.Add(channel.ChannelPoint, nodeInfo);
+            }
+            catch (Grpc.Core.RpcException ex)
+            {
+                ClosedChannelNodesErrorMessages.Add(ex.Message);
+            }
+        }
+    }
+}

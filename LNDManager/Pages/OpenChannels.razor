@@ -40,10 +40,10 @@
                         <td>@channel.Capacity</td>
                         <td>@(TimeSpan.FromSeconds(channel.Uptime).Humanize(5))</td>
                         <td>
-                            @*<span @onclick="@HandleCloseChannelButtonClick" class="badge badge-danger">
-                                    <Feather.Blazor.Icons.FeatherCloudOff />
-                                    Close Channel
-                                </span>*@
+                            <div @onclick="@(() => HandleCloseChannelButtonClick(channel.ChannelPoint))" class="badge badge-danger">
+                                <Feather.Blazor.Icons.FeatherCloudOff />
+                                Close Channel
+                            </div>
                         </td>
                     </tr>
                 }
@@ -159,7 +159,7 @@
 
         if (!result.Cancelled)
         {
-
+            await LoadChannels();
         }
     }
 }

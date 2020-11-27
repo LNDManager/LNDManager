@@ -51,10 +51,6 @@
     private PendingChannelsResponse PendingChannelsResponse { get; set; }
     private Dictionary<string, NodeInfo> PeerNodeDictionary_ForceClosing { get; set; }
 
-    private List<PendingChannelsResponse.Types.PendingOpenChannel> PendingOpenChannels { get; set; }
-
-    protected Dictionary<ulong, decimal> ChannelPercentageBalances { get; set; }
-
     protected override async Task OnInitializedAsync()
     {
         await LoadChannels();
