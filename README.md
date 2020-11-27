@@ -9,9 +9,9 @@ LNDManager - is a web interface of the [lnd](https://https://github.com/lightnin
 - List channels
 - Open channel
 - Close channel
+- List close channels
 
 Future features:
-- List close channels
 - Close channel forcibly
 - List pending channels
 - Send payment
