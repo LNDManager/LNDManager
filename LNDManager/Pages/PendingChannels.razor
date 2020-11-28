@@ -5,6 +5,7 @@
 <Indicator IndicatorContext="pending-channels">
     @if (PendingChannelsResponse != null)
     {
+        <h2 class="card-title">Pending Open Channels <span class="badge badge-primary">@PendingChannelsResponse.PendingOpenChannels.Count</span></h2>
         @if (PendingChannelsResponse.PendingOpenChannels.Count == 0)
         {
             <div>No pending open channels.</div>
@@ -28,8 +29,8 @@
                     @foreach (var channel in PendingChannelsResponse.PendingOpenChannels)
                     {
                         <tr>
-                            <td>
-                                @PeerNodeDictionary_PendingOpen[channel.Channel.ChannelPoint].Node.Alias
+                            <td class="text-nowrap">
+                                @(PeerNodeDictionary_PendingOpen.ContainsKey(channel.Channel.ChannelPoint) ? PeerNodeDictionary_PendingOpen[channel.Channel.ChannelPoint].Node.Alias : "Unable to find node")
                             </td>
                             <td>@channel.Channel.ChannelPoint</td>
                             <td>@channel.Channel.LocalBalance</td>
@@ -42,6 +43,17 @@
                     }
                 </tbody>
             </Table>
+            @if (PendingOpenChannelNodesErrorMessages.Any())
+            {
+                <div class="alert alert-danger mt-3" role="alert">
+                    <ul>
+                        @foreach (var message in PendingOpenChannelNodesErrorMessages)
+                        {
+                            <li>@message</li>
+                        }
+                    </ul>
+                </div>
+            }
         }
     }
 </Indicator>
@@ -49,13 +61,8 @@
 
 @code {
     private PendingChannelsResponse PendingChannelsResponse { get; set; }
-    private Dictionary<string, NodeInfo> PeerNodeDictionary_PendingOpen { get; set; }
-    private Dictionary<string, NodeInfo> PeerNodeDictionary_ForceClosing { get; set; }
-    private Dictionary<string, NodeInfo> PeerNodeDictionary_WaitingClosing { get; set; }
-
-    private List<PendingChannelsResponse.Types.PendingOpenChannel> PendingOpenChannels { get; set; }
-
-    protected Dictionary<ulong, decimal> ChannelPercentageBalances { get; set; }
+    private Dictionary<string, NodeInfo> PeerNodeDictionary_PendingOpen { get; } = new Dictionary<string, NodeInfo>();
+    public List<string> PendingOpenChannelNodesErrorMessages { get; } = new List<string>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -70,47 +77,22 @@
         {
             PendingChannelsResponse = await lightningClient.PendingChannelsAsync(new PendingChannelsRequest());
             await LoadChannelsPendingOpen();
-            await LoadNodesInfoPendingForceClosing();
-            await LoadNodesInfoWaitingClosing();
         }, "pending-channels");
     }
 
     private async Task LoadChannelsPendingOpen()
     {
-        var nodesInfo = PendingChannelsResponse.PendingOpenChannels.Select(async channel => await lightningClient.GetNodeInfoAsync(new NodeInfoRequest { PubKey = channel.Channel.RemoteNodePub, IncludeChannels = false }));
-        var nodes = await Task.WhenAll(nodesInfo);
-
-        var nodesInfo_PendingOpen = PendingChannelsResponse.PendingOpenChannels.Select(async channel =>
+        foreach (var channel in PendingChannelsResponse.PendingOpenChannels)
         {
-            var nodeInfo = await lightningClient.GetNodeInfoAsync(new NodeInfoRequest { PubKey = channel.Channel.RemoteNodePub, IncludeChannels = false });
-            return KeyValuePair.Create<string, NodeInfo>(channel.Channel.ChannelPoint, nodeInfo);
-        });
-        PeerNodeDictionary_PendingOpen = (await Task.WhenAll(nodesInfo_PendingOpen)).ToDictionary(item => item.Key, item => item.Value);
-    }
-
-    private async Task LoadNodesInfoPendingForceClosing()
-    {
-        var nodesInfo = PendingChannelsResponse.PendingForceClosingChannels.Select(async channel => await lightningClient.GetNodeInfoAsync(new NodeInfoRequest { PubKey = channel.Channel.RemoteNodePub, IncludeChannels = false }));
-        var nodes = await Task.WhenAll(nodesInfo);
-
-        var nodesInfo_ForceClosing = PendingChannelsResponse.PendingForceClosingChannels.Select(async channel =>
-        {
-            var nodeInfo = await lightningClient.GetNodeInfoAsync(new NodeInfoRequest { PubKey = channel.Channel.RemoteNodePub, IncludeChannels = false });
-            return KeyValuePair.Create<string, NodeInfo>(channel.Channel.ChannelPoint, nodeInfo);
-        });
-        PeerNodeDictionary_ForceClosing = (await Task.WhenAll(nodesInfo_ForceClosing)).ToDictionary(item => item.Key, item => item.Value);
-    }
-
-    private async Task LoadNodesInfoWaitingClosing()
-    {
-        var nodesInfo = PendingChannelsResponse.WaitingCloseChannels.Select(async channel => await lightningClient.GetNodeInfoAsync(new NodeInfoRequest { PubKey = channel.Channel.RemoteNodePub, IncludeChannels = false }));
-        var nodes = await Task.WhenAll(nodesInfo);
-
-        var nodesInfo_ForceClosing = PendingChannelsResponse.WaitingCloseChannels.Select(async channel =>
-        {
-            var nodeInfo = await lightningClient.GetNodeInfoAsync(new NodeInfoRequest { PubKey = channel.Channel.RemoteNodePub, IncludeChannels = false });
-            return KeyValuePair.Create<string, NodeInfo>(channel.Channel.ChannelPoint, nodeInfo);
-        });
-        PeerNodeDictionary_WaitingClosing = (await Task.WhenAll(nodesInfo_ForceClosing)).ToDictionary(item => item.Key, item => item.Value);
+            try
+            {
+                var nodeInfo = await lightningClient.GetNodeInfoAsync(new NodeInfoRequest { PubKey = channel.Channel.RemoteNodePub, IncludeChannels = false });
+                PeerNodeDictionary_PendingOpen.Add(channel.Channel.ChannelPoint, nodeInfo);
+            }
+            catch (Grpc.Core.RpcException ex)
+            {
+                PendingOpenChannelNodesErrorMessages.Add(ex.Message);
+            }
+        }
     }
 }

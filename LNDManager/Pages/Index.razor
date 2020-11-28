@@ -1,6 +1,8 @@
 ﻿@page "/"
 @inject Lnrpc.Lightning.LightningClient lightningClient
 @inject IIndicatorService IndicatorService
+@inject IModalService Modal
+
 <Indicator IndicatorContext="index">
     @if (InfoResponse != null)
     {
@@ -10,14 +12,29 @@
             <dd>@InfoResponse.Alias</dd>
             <dt>LND Version</dt>
             <dd>@InfoResponse.Version</dd>
-            <dt>Public key</dt>
+            <dt>
+                Public key
+                <span class="badge badge-primary btn-badge" @onclick="@(() => HandleShowQRCodeClick(InfoResponse.IdentityPubkey))">
+                    Show QR code
+                </span>
+            </dt>
             <dd>@InfoResponse.IdentityPubkey</dd>
             <dt>Is synced to chain?</dt>
             <dd class="@(InfoResponse.SyncedToChain ? "text-success" : "text-danger")">@(InfoResponse.SyncedToChain ? "Yes" : "No") (block height: @InfoResponse.BlockHeight)</dd>
             <dt>Is synced to graph?</dt>
             <dd class="@(InfoResponse.SyncedToGraph? "text-success" : "text-danger")">@(InfoResponse.SyncedToGraph ? "Yes" : "No")</dd>
             <dt>URIs</dt>
-            <dd>@((MarkupString)String.Join("<br />", InfoResponse.Uris))</dd>
+            <dd>
+                @foreach (var uri in InfoResponse.Uris)
+                {
+                    <div>
+                        @uri
+                        <span class="badge badge-primary btn-badge" @onclick="@(() => HandleShowQRCodeClick(uri))">
+                            Show QR code
+                        </span>
+                    </div>
+                }
+            </dd>
             <dt>Chains</dt>
             <dd>@((MarkupString)String.Join("<br />", InfoResponse.Chains.Select(chain => $"{chain.Chain_} {chain.Network}")))</dd>
             <dt>Features</dt>
@@ -71,5 +88,13 @@
         }, "index");
 
         await base.OnInitializedAsync();
+    }
+
+    private void HandleShowQRCodeClick(string content)
+    {
+        var modalParameters = new ModalParameters();
+        modalParameters.Add("Content", content);
+
+        Modal.Show<Dialogs.ShowQRCodeDialog>($"QR code", modalParameters);
     }
 }

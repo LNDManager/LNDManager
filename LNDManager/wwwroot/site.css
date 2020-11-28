@@ -133,3 +133,7 @@
     height: 50vh;
     display: block;
 }
+
+.btn-badge {
+    cursor: pointer;
+}

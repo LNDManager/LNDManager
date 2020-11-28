@@ -1,0 +1,39 @@
+﻿@if (!String.IsNullOrEmpty(QRCodeSrc))
+{
+    <dt>Content</dt>
+    <dd>@Content</dd>
+    <img src="@QRCodeSrc" />
+}
+
+@code {
+    [CascadingParameter] BlazoredModalInstance BlazoredModal { get; set; }
+    [Parameter] public string Content { get; set; }
+    private string QRCodeSrc { get; set; }
+
+    protected override void OnInitialized()
+    {
+        QRCodeGenerator qrGenerator = new QRCodeGenerator();
+        QRCodeData qrCodeData = qrGenerator.CreateQrCode(Content, QRCodeGenerator.ECCLevel.Q);
+        QRCode qrCode = new QRCode(qrCodeData);
+        Bitmap qrCodeImage = qrCode.GetGraphic(5);
+
+        using (MemoryStream ms = new MemoryStream())
+        {
+            qrCodeImage.Save(ms, ImageFormat.Png);
+            string base64Data = Convert.ToBase64String(ms.ToArray());
+            QRCodeSrc = "data:image/png;base64," + base64Data;
+        }
+
+        base.OnInitialized();
+    }
+
+    private async Task HandleDisconnectButtonClicked()
+    {
+        await BlazoredModal.Close();
+    }
+
+    private async Task HandleCancelButtonClicked()
+    {
+        await BlazoredModal.Cancel();
+    }
+}
