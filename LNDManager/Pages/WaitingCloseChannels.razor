@@ -5,9 +5,10 @@
 <Indicator IndicatorContext="@nameof(Pages.WaitingCloseChannels)">
     @if (PendingChannelsResponse != null)
     {
+        <h2 class="card-title">Pending Close Channels <span class="badge badge-primary">@PendingChannelsResponse.WaitingCloseChannels.Count</span></h2>
         @if (PendingChannelsResponse.WaitingCloseChannels.Count == 0)
         {
-            <div>No waiting closing channels.</div>
+            <div>No pending close channels.</div>
         }
         else
         {

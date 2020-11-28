@@ -40,7 +40,7 @@
                         <td>@channel.Capacity</td>
                         <td>@(TimeSpan.FromSeconds(channel.Uptime).Humanize(5))</td>
                         <td>
-                            <div @onclick="@(() => HandleCloseChannelButtonClick(channel.ChannelPoint))" class="badge badge-danger">
+                            <div @onclick="@(() => HandleCloseChannelButtonClick(channel.ChannelPoint))" class="badge badge-danger btn-badge">
                                 <Feather.Blazor.Icons.FeatherCloudOff />
                                 Close Channel
                             </div>
@@ -81,7 +81,7 @@
                         <td>@channel.Capacity</td>
                         <td>@(TimeSpan.FromSeconds(channel.Uptime).Humanize(5))</td>
                         <td>
-                            <div @onclick="@(() => HandleCloseChannelButtonClick(channel.ChannelPoint))" class="badge badge-danger">
+                            <div @onclick="@(() => HandleCloseChannelButtonClick(channel.ChannelPoint))" class="badge badge-danger btn-badge">
                                 <Feather.Blazor.Icons.FeatherCloudOff />
                                 Close Channel
                             </div>

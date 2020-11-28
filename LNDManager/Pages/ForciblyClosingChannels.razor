@@ -5,6 +5,7 @@
 <Indicator IndicatorContext="@nameof(Pages.ForciblyClosingChannels)">
     @if (PendingChannelsResponse != null)
     {
+        <h2 class="card-title">Forcibly Closing Channels <span class="badge badge-primary">@PendingChannelsResponse.PendingForceClosingChannels.Count</span></h2>
         @if (PendingChannelsResponse.PendingForceClosingChannels.Count == 0)
         {
             <div>No forcibly closing channels.</div>
